@@ -1,0 +1,5 @@
+transformers
+pymupdf
+python-docx
+python-dotenv
+langdetect

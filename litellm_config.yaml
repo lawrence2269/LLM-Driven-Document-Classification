@@ -1,0 +1,23 @@
+model_list:
+  - model_name: claude-4-6-sonnet-20260217
+    litellm_params:
+      model: ollama/qwen2.5-coder:3b
+      api_base: http://localhost:11434
+      drop_params: true
+
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: ollama/gemma3:12b
+      api_base: http://localhost:11434
+      drop_params: true
+
+  - model_name: claude-3-haiku-20240307
+    litellm_params:
+      model: ollama/deepseek-coder-v2:16b
+      api_base: http://localhost:11434
+      drop_params: true
+
+general_settings:
+  master_key: sk-local-dev-key
+litellm_settings:
+  drop_params: true
