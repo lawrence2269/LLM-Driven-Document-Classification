@@ -13,6 +13,7 @@
   - `transformers`, `pymupdf`, `python-docx`, `python-dotenv`, `langdetect`
 - Create `.env.example`
 - **Done when:** `pip install -r requirements.txt` succeeds in a clean venv
+- **Status:** ✅ Complete
 
 ---
 
@@ -21,6 +22,7 @@
 - Write `policy/classification_policy.md` documenting the Green / Red rules
 - Keep it plain English so the LLM can consume it directly in a prompt
 - **Done when:** Policy clearly distinguishes what makes a document Green vs Red with examples
+- **Status:** ✅ Complete
 
 ---
 
@@ -33,6 +35,7 @@
 - Dispatch to correct extractor (PDF → PyMuPDF)
 - Return `{path, text, extension}`
 - **Done when:** All three file types yield non-empty text strings in a unit test
+- **Status:** ✅ Complete
 
 ---
 
@@ -44,6 +47,7 @@
 - Count words in extracted text
 - Return a typed `DocumentMetadata` dataclass
 - **Done when:** Running against sample files produces a complete metadata dict with no `None` values for mandatory fields
+- **Status:** ✅ Complete
 
 ---
 
