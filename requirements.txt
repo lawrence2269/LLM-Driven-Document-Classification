@@ -1,5 +1,8 @@
+huggingface_hub
 transformers
+torch
 pymupdf
 python-docx
 python-dotenv
 langdetect
+pytest

@@ -10,8 +10,8 @@
 
 - Initialise Git repo with `.gitignore` (exclude `.env`, `__pycache__`, `G/`, `R/`, `logs/`)
 - Create `requirements.txt` with initial dependencies:
-  - `transformers`, `pymupdf`, `python-docx`, `python-dotenv`, `langdetect`
-- Create `.env.example`
+  - `huggingface_hub`, `transformers`, `torch`, `pymupdf`, `python-docx`, `python-dotenv`, `langdetect`
+- Create `.env.example` with `HF_API_TOKEN=`
 - **Done when:** `pip install -r requirements.txt` succeeds in a clean venv
 - **Status:** ✅ Complete
 
@@ -60,16 +60,21 @@
 - Build user prompt: document metadata summary + first N characters of text (to stay within token budget)
 - Request structured JSON output: `{"classification": "Green"|"Red", "confidence": "high"|"medium"|"low", "rationale": "..."}`
 - **Done when:** Prompt renders correctly and is under 4 000 tokens for the largest test document
+- **Status:** ✅ Complete
 
 ---
 
 ### T-06 · LLM API Call & Response Parsing (`src/classify.py` — call section)
 
-- Instantiate `anthropic.Anthropic()` using key from `.env`
-- Call `client.messages.create()` with `model="claude-sonnet-4-20250514"`
-- Parse JSON from response text; handle malformed JSON with a retry (up to 2 attempts)
+- Load `HF_API_TOKEN` from `.env.example` and set as the authorisation header
+- Take the model name (`HF_MODEL_NAME`) from `.env.example` and set it as model
+- Call the HuggingFace Inference API for the choosen model using `huggingface_hub.InferenceClient`
+- Pass the assembled prompt as a text-generation request with appropriate `max_new_tokens` and `temperature` parameters
+- Strip the echoed prompt from the response (HuggingFace text-generation returns the full sequence by default)
+- Parse JSON from the trimmed response text; handle malformed JSON with a retry (up to 2 attempts)
 - Raise a typed `ClassificationError` if both attempts fail
-- **Done when:** Unit test with a mocked API response parses to correct dataclass fields
+- **Done when:** Unit test with a mocked `InferenceClient` response parses to correct dataclass fields
+- **Status:** ✅ Complete
 
 ---
 
@@ -82,6 +87,7 @@
 - Write sidecar `.meta.json` next to the moved file
 - Handle filename collision: append `_1`, `_2`, … suffix
 - **Done when:** Running against a test inbox moves files to correct folders and sidecar JSON is valid
+- **Status:** ✅ Complete
 
 ---
 
@@ -90,6 +96,7 @@
 - Append one JSON line per document to `logs/run_log.jsonl`
 - Fields: `run_id`, `timestamp`, `original_path`, `classification`, `confidence`, `rationale`, `model`, `sha256`
 - **Done when:** After a run, `logs/run_log.jsonl` contains one record per processed file and is valid JSONL
+- **Status:** ✅ Complete
 
 ---
 
@@ -109,7 +116,7 @@
 
 ### T-10 · Unit Tests (`tests/test_classify.py`)
 
-- Mock Anthropic API responses
+- Mock `huggingface_hub.InferenceClient` responses
 - Test: valid Green response, valid Red response, malformed JSON triggers retry, retry exhaustion raises error
 - **Done when:** `pytest` passes with ≥ 80 % coverage on `classify.py`
 
@@ -117,10 +124,9 @@
 
 ### T-11 · Sample Document Set
 
-- Collect or create 5–10 sample documents (mix of PDF, DOCX, TXT)
-- Include clear Green examples, clear Red examples, and 1–2 ambiguous edge cases
-- Place in `inbox/`
-- **Done when:** Running `main.py` against the sample set produces expected labels for clear-cut documents
+- The documents are placed in `inbox/` in PDF format
+- Run `main.py` against the documents produces expected labels for clear-cut documents
+- **Done when:** `python src/main.py` successfully processes all files in `inbox/` end-to-end
 
 ---
 

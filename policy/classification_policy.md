@@ -2,7 +2,7 @@
 
 ## Purpose of This Policy
 
-This policy defines how documents should be classified into Green (non‑sensitive) or Red (sensitive) for the purpose of this proof‑of‑concept. The rules are intentionally simple so an **LLM** can apply them reliably.
+This policy defines how documents should be classified into Green (non‑sensitive) or Red (sensitive) for the purpose of this proof‑of‑concept. The rules are intentionally simple so an **LLM** can apply them reliably. Please note Documents may be in Swedish. Apply these rules regardless of language.
 
 ## Green Documents (Store in G/ folder)
 
