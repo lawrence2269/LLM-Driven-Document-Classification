@@ -10,8 +10,9 @@
 
 - Initialise Git repo with `.gitignore` (exclude `.env`, `__pycache__`, `G/`, `R/`, `logs/`)
 - Create `requirements.txt` with initial dependencies:
-  - `huggingface_hub`, `transformers`, `torch`, `pymupdf`, `python-docx`, `python-dotenv`, `langdetect`
-- Create `.env.example` with `HF_API_TOKEN=`
+  - `transformers`, `torch`, `pymupdf`, `python-docx`, `python-dotenv`, `langdetect`
+- Create `.env.example` (no API token required for local inference)
+- Create folder skeleton: `inbox/`, `G/`, `R/`, `logs/`, `policy/`, `src/`, `tests/`
 - **Done when:** `pip install -r requirements.txt` succeeds in a clean venv
 - **Status:** ✅ Complete
 
@@ -53,28 +54,29 @@
 
 ## Phase 3 — LLM Classification
 
-### T-05 · Prompt Builder (`src/classify.py` — prompt section)
+### T-05 · Prompt Builder & Tokenizer (`src/classify.py` — prompt section)
 
 - Load policy text from `policy/classification_policy.md`
-- Build system prompt: role + policy
-- Build user prompt: document metadata summary + first N characters of text (to stay within token budget)
-- Request structured JSON output: `{"classification": "Green"|"Red", "confidence": "high"|"medium"|"low", "rationale": "..."}`
-- **Done when:** Prompt renders correctly and is under 4 000 tokens for the largest test document
+- Load tokenizer once at module level using `AutoTokenizer.from_pretrained("AI-Sweden-Models/gpt-sw3-126m")`
+- Build a single completion-style prompt string (GPT-SW3 is a causal LM — no separate system/user roles):
+  - Include policy rules, document metadata summary, and a truncated document body
+- Truncate document body by encoding with the tokenizer and slicing to a safe token budget (e.g. max 1 500 tokens total), then decoding back to text — ensures truncation is token-accurate rather than character-based
+- End the prompt with the expected JSON output prefix to steer the model's continuation: `{"classification":`
+- **Done when:** Tokenized prompt length is verified to stay within the model's context window for all sample documents
 - **Status:** ✅ Complete
 
 ---
 
-### T-06 · LLM API Call & Response Parsing (`src/classify.py` — call section)
+### T-06 · Local Model Inference & Response Parsing (`src/classify.py` — call section)
 
-- Load `HF_API_TOKEN` from `.env.example` and set as the authorisation header
-- Take the model name (`HF_MODEL_NAME`) from `.env.example` and set it as model
-- Call the HuggingFace Inference API for the choosen model using `huggingface_hub.InferenceClient`
-- Pass the assembled prompt as a text-generation request with appropriate `max_new_tokens` and `temperature` parameters
-- Strip the echoed prompt from the response (HuggingFace text-generation returns the full sequence by default)
-- Parse JSON from the trimmed response text; handle malformed JSON with a retry (up to 2 attempts)
+- Load model once at module level using `AutoModelForCausalLM.from_pretrained()` with the model name obtained from (`HF_MODEL_NAME`) from .env.example file in .env directory or folder.
+- Move model to appropriate device (`cuda` if available, else `cpu`)
+- Tokenize the prompt with `tokenizer(prompt, return_tensors="pt")` and move input tensors to the same device
+- Call `model.generate()` with appropriate parameters (e.g. `max_new_tokens=150`, `do_sample=False`)
+- Decode the output with `tokenizer.decode()`, then strip the original prompt prefix from the decoded string to isolate only the newly generated text
+- Parse JSON from the stripped output; handle malformed JSON with a retry using a slightly rephrased prompt suffix (up to 2 attempts)
 - Raise a typed `ClassificationError` if both attempts fail
-- **Done when:** Unit test with a mocked `InferenceClient` response parses to correct dataclass fields
-- **Status:** ✅ Complete
+- **Done when:** Unit test with a mocked `model.generate()` response parses to correct dataclass fields
 
 ---
 

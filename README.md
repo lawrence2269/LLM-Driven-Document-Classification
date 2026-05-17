@@ -32,7 +32,9 @@ pip install -r requirements.txt
 2. Provide Hugging Face credentials in an `.env` folder (preferred) or file.
 
 - Create a folder named `.env/` and place `.env.example` (copy from repo)
-  -> edit `.env/.env.example` and set `HF_API_TOKEN` and `HF_MODEL_NAME`.
+  -> edit `.env/.env.example` and set `HF_MODEL_NAME` and optionally `HF_API_TOKEN`.
+  - For remote Hugging Face Inference API calls, set `HF_API_TOKEN` and `HF_INFERENCE_BACKEND=api`.
+  - For local model inference via `transformers`, set `HF_INFERENCE_BACKEND=local` and `HF_MODEL_NAME` only.
 
 ## Project Layout
 

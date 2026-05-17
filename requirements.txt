@@ -1,8 +1,9 @@
-huggingface_hub
-transformers
 torch
+transformers==4.38.2
+huggingface_hub
 pymupdf
 python-docx
 python-dotenv
 langdetect
 pytest
+sentencepiece

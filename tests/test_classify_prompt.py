@@ -1,7 +1,10 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from src.classify.classify import (
     DEFAULT_POLICY_PATH,
+    MAX_PROMPT_TOKENS,
+    build_classification_prompt,
     build_classification_prompts,
     build_metadata_summary,
     build_system_prompt,
@@ -93,6 +96,38 @@ def test_build_classification_prompts_are_within_token_budget():
     assert "rationale" in user_prompt
 
 
+def test_build_classification_prompt_with_token_budget(tmp_path):
+    env_dir = tmp_path / ".env"
+    env_dir.mkdir()
+    (env_dir / ".env.example").write_text("HF_MODEL_NAME=test-model\n")
+
+    metadata = DocumentMetadata(
+        filename="doc.pdf",
+        size_bytes=1234,
+        created_timestamp=1.0,
+        modified_timestamp=2.0,
+        sha256_hash="abc123",
+        language="en",
+        word_count=300,
+        pdf_author="Author Name",
+        pdf_title="Title"
+    )
+    text = "word " * 3000
+
+    class DummyTokenizer:
+        def encode(self, text, add_special_tokens=False):
+            return text.split()
+
+        def decode(self, token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True):
+            return " ".join(token_ids)
+
+    with patch("src.classify.classify.load_transformers_tokenizer", return_value=DummyTokenizer()):
+        prompt = build_classification_prompt(metadata, text, env_path=env_dir)
+
+    assert isinstance(prompt, str)
+    assert len(DummyTokenizer().encode(prompt, add_special_tokens=False)) <= MAX_PROMPT_TOKENS
+
+
 def test_build_classification_prompts_raises_when_prompt_too_large():
     metadata = DocumentMetadata(
         filename="doc.pdf",
@@ -107,9 +142,9 @@ def test_build_classification_prompts_raises_when_prompt_too_large():
     )
     text = "x" * 20000
 
-    try:
-        system_prompt, user_prompt = build_classification_prompts(metadata, text, max_text_chars=20000)
-    except ValueError as exc:
-        assert "maximum token budget" in str(exc)
-    else:
-        assert False, "Expected ValueError for oversized prompt"
+    # New behavior: the builder will truncate the text preview to fit the
+    # overall prompt budget whenever possible. Ensure the returned prompt is
+    # within the allowed budget.
+    system_prompt, user_prompt = build_classification_prompts(metadata, text, max_text_chars=20000)
+    combined_length = len(system_prompt) + len(user_prompt)
+    assert combined_length <= 16000

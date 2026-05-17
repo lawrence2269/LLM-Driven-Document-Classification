@@ -13,6 +13,18 @@ from src.classify.classify import (
 from src.metadata.metadata import DocumentMetadata
 
 
+class DummyTokenizer:
+    def encode(self, text, add_special_tokens=False):
+        return text.split()
+
+    def decode(self, token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True):
+        return " ".join(token_ids)
+
+
+def patch_tokenizer():
+    return patch("src.classify.classify.load_transformers_tokenizer", return_value=DummyTokenizer())
+
+
 def make_metadata():
     return DocumentMetadata(
         filename="doc.pdf",
@@ -75,8 +87,9 @@ def test_classify_document_returns_green(tmp_path):
         def text_generation(self, prompt, *, model, max_new_tokens, temperature, return_full_text, **kwargs):
             return f"{prompt}\n\n{json.dumps(expected)}"
 
-    with patch("src.classify.classify.InferenceClient", DummyClient):
-        result = classify_document(metadata, text, env_path=env_dir)
+    with patch_tokenizer():
+        with patch("src.classify.classify.InferenceClient", DummyClient):
+            result = classify_document(metadata, text, env_path=env_dir)
 
     assert result.classification == "Green"
     assert result.confidence == "high"
@@ -101,6 +114,7 @@ def test_classify_document_retries_and_fails(tmp_path):
                 return "not json"
             return "still not json"
 
-    with patch("src.classify.classify.InferenceClient", DummyClient):
-        with pytest.raises(ClassificationError):
-            classify_document(metadata, text, env_path=env_dir)
+    with patch_tokenizer():
+        with patch("src.classify.classify.InferenceClient", DummyClient):
+            with pytest.raises(ClassificationError):
+                classify_document(metadata, text, env_path=env_dir)
